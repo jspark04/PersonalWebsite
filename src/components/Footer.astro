@@ -1,0 +1,25 @@
+---
+import { siteConfig } from '../data/site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="w-full py-8 mt-12 border-t border-white/5 relative z-10">
+  <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-sm text-muted">
+    <div class="mb-4 md:mb-0">
+      &copy; {year} {siteConfig.name}. All rights reserved.
+    </div>
+    
+    <div class="flex space-x-6">
+      <a href={siteConfig.socials.linkedin} target="_blank" rel="noopener noreferrer" class="hover:text-primary transition-colors">
+        LinkedIn
+      </a>
+      <a href={siteConfig.socials.github} target="_blank" rel="noopener noreferrer" class="hover:text-primary transition-colors">
+        GitHub
+      </a>
+      <a href={`mailto:${siteConfig.email}`} class="hover:text-primary transition-colors">
+        Email
+      </a>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,30 @@
+---
+import { siteConfig } from '../data/site';
+
+const navItems = [
+  { name: 'Home', href: '/' },
+  { name: 'About', href: '/about' },
+  { name: 'Notes', href: '/notes' },
+];
+---
+
+<nav class="w-full py-6 z-50 relative">
+  <div class="container mx-auto px-4 flex justify-between items-center">
+    <a href="/" class="text-2xl font-bold tracking-tighter hover:text-primary transition-colors duration-300">
+      JP<span class="text-primary">.</span>
+    </a>
+    
+    <ul class="flex space-x-8">
+      {navItems.map((item) => (
+        <li>
+          <a 
+            href={item.href} 
+            class="text-sm font-medium text-muted hover:text-primary transition-colors duration-300 uppercase tracking-widest"
+          >
+            {item.name}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>
