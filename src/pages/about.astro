@@ -1,0 +1,64 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { siteConfig } from '../data/site';
+import { resume } from '../data/resume';
+---
+
+<Layout title="About">
+	<section class="max-w-3xl mx-auto">
+		<h1 class="text-4xl font-bold mb-8">About Me</h1>
+		
+		<div class="prose prose-invert prose-lg mb-16">
+			<p class="text-xl text-text leading-relaxed">
+				{siteConfig.bio.long}
+			</p>
+		</div>
+
+		<div class="space-y-16">
+			<section>
+				<h2 class="text-2xl font-bold mb-8 text-primary flex items-center">
+					Experience
+					<span class="ml-4 h-px bg-white/10 flex-grow"></span>
+				</h2>
+				<div class="space-y-12">
+					{resume.experience.map((role) => (
+						<div class="relative pl-8 border-l border-white/10 last:border-0">
+							<div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary/20 border border-primary"></div>
+							<div class="mb-2">
+								<h3 class="text-xl font-bold text-text">{role.role}</h3>
+								<div class="text-primary mb-1">{role.company}</div>
+								<div class="text-sm text-muted font-mono">{role.startDate} - {role.endDate} · {role.location}</div>
+							</div>
+							{role.description && (
+								<p class="text-muted mb-4 leading-relaxed">{role.description}</p>
+							)}
+							{role.bullets.length > 0 && (
+								<ul class="list-disc list-outside ml-4 space-y-2 text-muted">
+									{role.bullets.map(bullet => (
+										<li>{bullet}</li>
+									))}
+								</ul>
+							)}
+						</div>
+					))}
+				</div>
+			</section>
+
+			<section>
+				<h2 class="text-2xl font-bold mb-6 text-primary flex items-center">
+					Education
+					<span class="ml-4 h-px bg-white/10 flex-grow"></span>
+				</h2>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+					{resume.education.map((edu) => (
+						<div>
+							<h3 class="text-lg font-bold text-text">{edu.school}</h3>
+							<div class="text-muted">{edu.degree}</div>
+							<div class="text-sm text-muted font-mono mt-1">{edu.year}</div>
+						</div>
+					))}
+				</div>
+			</section>
+		</div>
+	</section>
+</Layout>

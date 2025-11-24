@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return notes.map(note => ({
+    params: { slug: note.slug },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await note.render();
+---
+
+<Layout title={note.data.title} description={note.data.description}>
+	<article class="max-w-3xl mx-auto">
+		<header class="mb-12 text-center">
+			<h1 class="text-4xl md:text-5xl font-bold mb-4">{note.data.title}</h1>
+			<div class="flex justify-center items-center gap-4 text-muted font-mono text-sm">
+				<time datetime={note.data.pubDate.toISOString()}>
+					{note.data.pubDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+				</time>
+                {note.data.tags && (
+                    <div class="flex gap-2">
+                        {note.data.tags.map(tag => (
+                            <span>#{tag}</span>
+                        ))}
+                    </div>
+                )}
+			</div>
+		</header>
+
+		<div class="prose prose-invert prose-lg mx-auto prose-headings:text-text prose-a:text-primary hover:prose-a:text-accent prose-strong:text-white">
+			<Content />
+		</div>
+	</article>
+</Layout>
