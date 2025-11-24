@@ -7,6 +7,16 @@
   let width = 0;
   let height = 0;
   let particles: Particle[] = [];
+  
+  // Mouse state
+  let mouseX = 0;
+  let mouseY = 0;
+  let isMouseMoving = false;
+  let mouseTimeout: number;
+
+  // Scroll state
+  let scrollY = window.scrollY;
+  let scrollVelocity = 0;
 
   class Particle {
     x: number;
@@ -14,24 +24,65 @@
     vx: number;
     vy: number;
     size: number;
+    baseSize: number;
     color: string;
+    angle: number;
+    spinSpeed: number;
 
     constructor() {
       this.x = Math.random() * width;
       this.y = Math.random() * height;
       this.vx = (Math.random() - 0.5) * 0.5;
       this.vy = (Math.random() - 0.5) * 0.5;
-      this.size = Math.random() * 2;
-      // Cyberpunk colors: Cyan and Violet
-      this.color = Math.random() > 0.5 ? 'rgba(0, 240, 255, 0.5)' : 'rgba(112, 0, 255, 0.5)';
+      this.baseSize = Math.random() * 2 + 1;
+      this.size = this.baseSize;
+      this.angle = Math.random() * Math.PI * 2;
+      this.spinSpeed = (Math.random() - 0.5) * 0.02;
+      
+      // Enhanced Cyberpunk colors: Cyan, Violet, and Magenta
+      const colors = [
+        'rgba(0, 240, 255, 0.6)',  // Cyan
+        'rgba(112, 0, 255, 0.6)',  // Violet
+        'rgba(255, 0, 128, 0.6)'   // Magenta
+      ];
+      this.color = colors[Math.floor(Math.random() * colors.length)];
     }
 
     update() {
+      // Add scroll velocity influence
+      this.y += this.vy + (scrollVelocity * 0.5);
       this.x += this.vx;
-      this.y += this.vy;
 
-      if (this.x < 0 || this.x > width) this.vx *= -1;
-      if (this.y < 0 || this.y > height) this.vy *= -1;
+      // Mouse interaction
+      if (isMouseMoving) {
+        const dx = mouseX - this.x;
+        const dy = mouseY - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 200) {
+          const force = (200 - distance) / 200;
+          this.vx += (dx / distance) * force * 0.05;
+          this.vy += (dy / distance) * force * 0.05;
+        }
+      }
+
+      // Friction to return to normal speed
+      this.vx *= 0.99;
+      this.vy *= 0.99;
+
+      // Keep minimum movement
+      if (Math.abs(this.vx) < 0.1) this.vx = (Math.random() - 0.5) * 0.5;
+      if (Math.abs(this.vy) < 0.1) this.vy = (Math.random() - 0.5) * 0.5;
+
+      // Pulse size
+      this.angle += this.spinSpeed;
+      this.size = this.baseSize + Math.sin(this.angle) * 0.5;
+
+      // Wrap around screen
+      if (this.x < 0) this.x = width;
+      if (this.x > width) this.x = 0;
+      if (this.y < 0) this.y = height;
+      if (this.y > height) this.y = 0;
     }
 
     draw() {
@@ -39,7 +90,13 @@
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
       ctx.fillStyle = this.color;
+      
+      // Glow effect
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+      
       ctx.fill();
+      ctx.shadowBlur = 0; // Reset for lines
     }
   }
 
@@ -53,7 +110,7 @@
 
   function initParticles() {
     particles = [];
-    const particleCount = Math.min(Math.floor((width * height) / 15000), 100);
+    const particleCount = Math.min(Math.floor((width * height) / 10000), 150);
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle());
     }
@@ -63,20 +120,39 @@
     if (!ctx) return;
     ctx.clearRect(0, 0, width, height);
     
+    // Decay scroll velocity
+    scrollVelocity *= 0.95;
+    
     // Draw connections
     ctx.lineWidth = 0.5;
     for (let i = 0; i < particles.length; i++) {
       particles[i].update();
       particles[i].draw();
       
+      // Connect to mouse
+      if (isMouseMoving) {
+        const dx = mouseX - particles[i].x;
+        const dy = mouseY - particles[i].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 250) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(200, 200, 255, ${0.2 - distance / 1250})`;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(mouseX, mouseY);
+          ctx.stroke();
+        }
+      }
+
+      // Connect to other particles
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
         const dy = particles[i].y - particles[j].y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 100) {
+        if (distance < 120) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(100, 100, 150, ${0.1 - distance / 1000})`;
+          ctx.strokeStyle = `rgba(150, 150, 200, ${0.15 - distance / 800})`;
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
           ctx.stroke();
@@ -86,7 +162,27 @@
     requestAnimationFrame(animate);
   }
 
+  // Event Listeners
   window.addEventListener('resize', resize);
+  
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    isMouseMoving = true;
+    
+    clearTimeout(mouseTimeout);
+    mouseTimeout = setTimeout(() => {
+      isMouseMoving = false;
+    }, 2000);
+  });
+
+  window.addEventListener('scroll', () => {
+    const newScrollY = window.scrollY;
+    const delta = newScrollY - scrollY;
+    scrollVelocity = delta * 0.1;
+    scrollY = newScrollY;
+  });
+
   resize();
   animate();
 </script>
