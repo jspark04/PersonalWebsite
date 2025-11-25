@@ -1,8 +1,14 @@
 <canvas id="bg-canvas" class="fixed inset-0 w-full h-full -z-10 opacity-40 pointer-events-none"></canvas>
+<div id="achievement-popup" class="fixed bottom-8 right-8 bg-black/80 text-white px-6 py-3 rounded-lg border border-cyan-500 shadow-[0_0_15px_rgba(0,240,255,0.5)] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none z-50 font-mono">
+  <div class="text-cyan-400 text-sm font-bold mb-1">SYSTEM NOTIFICATION</div>
+  <div id="achievement-text" class="text-lg"></div>
+</div>
 
 <script>
   const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d');
+  const achievementPopup = document.getElementById('achievement-popup');
+  const achievementText = document.getElementById('achievement-text');
 
   let width = 0;
   let height = 0;
@@ -13,6 +19,10 @@
   let mouseY = 0;
   let isMouseMoving = false;
   let mouseTimeout: number;
+
+  // Game state
+  let maxConnected = 0;
+  let achievementShown = false;
 
   // Scroll state
   let scrollY = window.scrollY;
@@ -116,6 +126,20 @@
     }
   }
 
+  function showAchievement(text: string) {
+    if (achievementPopup && achievementText) {
+      achievementText.textContent = text;
+      achievementPopup.classList.remove('translate-y-20', 'opacity-0');
+      
+      setTimeout(() => {
+        achievementPopup.classList.add('translate-y-20', 'opacity-0');
+        setTimeout(() => {
+          achievementShown = false;
+        }, 500);
+      }, 3000);
+    }
+  }
+
   function animate() {
     if (!ctx) return;
     ctx.clearRect(0, 0, width, height);
@@ -123,6 +147,8 @@
     // Decay scroll velocity
     scrollVelocity *= 0.95;
     
+    let currentConnected = 0;
+
     // Draw connections
     ctx.lineWidth = 0.5;
     for (let i = 0; i < particles.length; i++) {
@@ -136,6 +162,7 @@
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < 250) {
+          currentConnected++;
           ctx.beginPath();
           ctx.strokeStyle = `rgba(200, 200, 255, ${0.3 - distance / 1250})`;
           ctx.moveTo(particles[i].x, particles[i].y);
@@ -159,6 +186,13 @@
         }
       }
     }
+
+    // Check for achievement
+    if (currentConnected > 50 && !achievementShown) {
+      achievementShown = true;
+      showAchievement(`Neural Link Established: ${currentConnected} Nodes`);
+    }
+
     requestAnimationFrame(animate);
   }
 

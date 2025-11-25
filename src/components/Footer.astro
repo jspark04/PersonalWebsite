@@ -1,5 +1,6 @@
 ---
 import { siteConfig } from '../data/site';
+import EmailLink from './EmailLink.astro';
 
 const year = new Date().getFullYear();
 ---
@@ -17,9 +18,7 @@ const year = new Date().getFullYear();
       <a href={siteConfig.socials.github} target="_blank" rel="noopener noreferrer" class="hover:text-primary transition-colors">
         GitHub
       </a>
-      <a href={`mailto:${siteConfig.email}`} class="hover:text-primary transition-colors">
-        Email
-      </a>
+      <EmailLink email={siteConfig.email} class="hover:text-primary transition-colors" />
     </div>
   </div>
 </footer>

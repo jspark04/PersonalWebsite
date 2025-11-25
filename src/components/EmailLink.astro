@@ -1,0 +1,58 @@
+---
+interface Props {
+  email: string;
+  class?: string;
+}
+
+const { email, class: className } = Astro.props;
+const [user, domain] = email.split('@');
+---
+
+<a 
+  href="#" 
+  class={`email-link ${className}`} 
+  data-user={user} 
+  data-domain={domain}
+  aria-label="Email"
+>
+  <span class="sr-only">Email me</span>
+  <span class="placeholder">Email me</span>
+</a>
+
+<script>
+  const links = document.querySelectorAll('a.email-link');
+  
+  links.forEach(link => {
+    const user = link.getAttribute('data-user');
+    const domain = link.getAttribute('data-domain');
+    
+    if (user && domain) {
+      const email = `${user}@${domain}`;
+      
+      // Update href on hover or focus to avoid early scraping
+      const setMailto = () => {
+        link.setAttribute('href', `mailto:${email}`);
+        link.textContent = email;
+        // Remove event listeners once set
+        link.removeEventListener('mouseover', setMailto);
+        link.removeEventListener('focus', setMailto);
+      };
+
+      link.addEventListener('mouseover', setMailto);
+      link.addEventListener('focus', setMailto);
+      
+      // Also set it immediately for usability, but the split data attributes 
+      // already provide some protection against simple regex scrapers.
+      // For better protection, we rely on the user interaction or a small timeout.
+      setTimeout(() => {
+          link.textContent = email;
+      }, 500);
+    }
+  });
+</script>
+
+<style>
+    .placeholder {
+        opacity: 0.5;
+    }
+</style>
