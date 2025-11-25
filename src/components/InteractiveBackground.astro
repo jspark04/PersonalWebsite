@@ -110,7 +110,7 @@
 
   function initParticles() {
     particles = [];
-    const particleCount = Math.min(Math.floor((width * height) / 10000), 150);
+    const particleCount = Math.min(Math.floor((width * height) / 6000), 250);
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle());
     }
@@ -137,7 +137,7 @@
 
         if (distance < 250) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(200, 200, 255, ${0.2 - distance / 1250})`;
+          ctx.strokeStyle = `rgba(200, 200, 255, ${0.3 - distance / 1250})`;
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(mouseX, mouseY);
           ctx.stroke();
@@ -152,7 +152,7 @@
 
         if (distance < 120) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(150, 150, 200, ${0.15 - distance / 800})`;
+          ctx.strokeStyle = `rgba(180, 180, 230, ${0.25 - distance / 800})`;
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
           ctx.stroke();
