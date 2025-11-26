@@ -21,6 +21,6 @@ It helped me generally just... build things faster without the usual friction.
 
 ### What's Next?
 
-I'm aiming to build a "Habbo Hotel" style isometric experience for the site next. A persistent virtual lobby where visitors can walk around, chat, and interact - with an AI version of me.
+I'm aiming to build a "Habbo Hotel" style isometric experience for the site next. A persistent virtual lobby where visitors can walk around, chat, and interact - with an AI version of me. Of course, this lobby will be crickets - but it will be a fun experiment to see how far we can push AI with this tool.
 
 I have to admit though, I'm starting to hit the limits of current AI with this one. Generating consistent isometric assets, handling real-time multiplayer state, and getting the pathfinding just right is proving to be a challenge that requires a lot more manual intervention. We're not quite at the "text-to-MMO" stage yet, but it's getting closer.
