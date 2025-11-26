@@ -46,13 +46,13 @@ docker save -o site.tar john-park-site:latest
     - Container Name: `john-park-site`
     - Enable "Enable auto-restart" (optional, but recommended).
 4.  **Port Settings**:
-    - Local Port: `3000` (or any open port like 8080)
-    - Container Port: `3000` (do not change this one)
+    - Local Port: `3030` (or any open port like 8080)
+    - Container Port: `3030` (do not change this one)
     - Type: TCP
 5.  Click **Next** -> **Done**.
 
 ### Step 6: Verify
-Open your browser and go to `http://YOUR_NAS_IP:3000`. Your site should be live!
+Open your browser and go to `http://YOUR_NAS_IP:3030`. Your site should be live!
 
 ## Updating the Site
 To update your site in the future:
@@ -74,7 +74,7 @@ If your site is not loading at your domain (e.g., `jp.maple.myds.me`), follow th
 - If it is stopped, click **Log** to see if there are any error messages.
 
 ### 2. Verify Local Access (Bypass Reverse Proxy)
-- Try to access the site using your NAS IP address: `http://YOUR_NAS_IP:3000` (or whatever local port you mapped).
+- Try to access the site using your NAS IP address: `http://YOUR_NAS_IP:3030` (or whatever local port you mapped).
 - **If this works**: The container is fine. The issue is with the **Reverse Proxy** settings.
 - **If this fails**: The container is not running correctly or the port mapping is wrong.
 
@@ -88,7 +88,7 @@ If your site is not loading at your domain (e.g., `jp.maple.myds.me`), follow th
 - **Destination**:
     - Protocol: `HTTP`
     - Hostname: `localhost` (or `127.0.0.1`)
-    - Port: `3000` (Must match the **Local Port** you set in Step 5.4)
+    - Port: `3030` (Must match the **Local Port** you set in Step 5.4)
 
 ### 4. Check Websocket Headers (Optional but recommended)
 - In the Reverse Proxy rule, click **Custom Header**.
