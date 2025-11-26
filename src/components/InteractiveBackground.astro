@@ -1,14 +1,56 @@
 <canvas id="bg-canvas" class="fixed inset-0 w-full h-full -z-10 opacity-40 pointer-events-none"></canvas>
+
+<!-- AGI Progress Tracker -->
+<div id="agi-tracker" class="fixed top-1/2 -translate-y-1/2 right-8 bg-black/80 text-white px-4 py-3 rounded-lg border border-cyan-500 shadow-[0_0_15px_rgba(0,240,255,0.5)] z-50 font-mono min-w-[200px] opacity-0 transition-opacity duration-500">
+  <div class="text-xs text-cyan-400 mb-1">QUEST FOR AGI</div>
+  <div class="flex justify-between items-center mb-2">
+    <span class="text-sm">Nodes:</span>
+    <span id="current-nodes" class="text-xl font-bold text-cyan-300">0</span>
+  </div>
+  <div class="flex justify-between items-center mb-2">
+    <span class="text-xs text-gray-400">Best:</span>
+    <span id="high-score" class="text-sm text-yellow-300">0</span>
+  </div>
+  <div class="mb-1">
+    <div class="flex justify-between text-xs mb-1">
+      <span id="current-level" class="text-violet-400">Initializing...</span>
+      <span id="next-milestone" class="text-gray-400">25</span>
+    </div>
+    <div class="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
+      <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-300" style="width: 0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Popup -->
 <div id="achievement-popup" class="fixed bottom-8 right-8 bg-black/80 text-white px-6 py-3 rounded-lg border border-cyan-500 shadow-[0_0_15px_rgba(0,240,255,0.5)] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none z-50 font-mono">
-  <div class="text-cyan-400 text-sm font-bold mb-1">SYSTEM NOTIFICATION</div>
+  <div id="achievement-header" class="text-cyan-400 text-sm font-bold mb-1">MILESTONE REACHED</div>
   <div id="achievement-text" class="text-lg"></div>
+  <div id="new-record" class="text-xs text-yellow-300 mt-1 hidden">🏆 NEW RECORD!</div>
+</div>
+
+<!-- Celebration Overlay -->
+<div id="celebration-overlay" class="fixed inset-0 pointer-events-none z-40">
+  <canvas id="celebration-canvas" class="w-full h-full"></canvas>
 </div>
 
 <script>
   const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d');
+  const celebrationCanvas = document.getElementById('celebration-canvas') as HTMLCanvasElement;
+  const celebrationCtx = celebrationCanvas.getContext('2d');
+  
+  // UI Elements
+  const agiTracker = document.getElementById('agi-tracker');
+  const currentNodesEl = document.getElementById('current-nodes');
+  const highScoreEl = document.getElementById('high-score');
+  const currentLevelEl = document.getElementById('current-level');
+  const nextMilestoneEl = document.getElementById('next-milestone');
+  const progressBar = document.getElementById('progress-bar');
   const achievementPopup = document.getElementById('achievement-popup');
+  const achievementHeader = document.getElementById('achievement-header');
   const achievementText = document.getElementById('achievement-text');
+  const newRecordEl = document.getElementById('new-record');
 
   let width = 0;
   let height = 0;
@@ -21,8 +63,19 @@
   let mouseTimeout: number;
 
   // Game state
-  let maxConnected = 0;
-  let achievementShown = false;
+  let currentNodes = 0;
+  let highScore = parseInt(localStorage.getItem('agiHighScore') || '0');
+  let celebrationParticles: CelebrationParticle[] = [];
+  
+  // AGI Milestones
+  const MILESTONES = [
+    { threshold: 25, name: "Machine Learning Era", level: 1, color: "from-cyan-500 to-cyan-400" },
+    { threshold: 50, name: "Deep Learning Breakthrough", level: 2, color: "from-violet-500 to-violet-400" },
+    { threshold: 100, name: "Transformer Revolution", level: 3, color: "from-fuchsia-500 to-fuchsia-400" },
+    { threshold: 150, name: "GPT-4 Level Intelligence", level: 4, color: "from-yellow-500 to-yellow-400" },
+    { threshold: 200, name: "AGI ACHIEVED", level: 5, color: "from-green-500 via-cyan-500 to-violet-500" },
+  ];
+  const achievedMilestones = new Set<number>();
 
   // Scroll state
   let scrollY = window.scrollY;
@@ -49,21 +102,18 @@
       this.angle = Math.random() * Math.PI * 2;
       this.spinSpeed = (Math.random() - 0.5) * 0.02;
       
-      // Enhanced Cyberpunk colors: Cyan, Violet, and Magenta
       const colors = [
-        'rgba(0, 240, 255, 0.6)',  // Cyan
-        'rgba(112, 0, 255, 0.6)',  // Violet
-        'rgba(255, 0, 128, 0.6)'   // Magenta
+        'rgba(0, 240, 255, 0.6)',
+        'rgba(112, 0, 255, 0.6)',
+        'rgba(255, 0, 128, 0.6)'
       ];
       this.color = colors[Math.floor(Math.random() * colors.length)];
     }
 
     update() {
-      // Add scroll velocity influence
       this.y += this.vy + (scrollVelocity * 0.5);
       this.x += this.vx;
 
-      // Mouse interaction
       if (isMouseMoving) {
         const dx = mouseX - this.x;
         const dy = mouseY - this.y;
@@ -76,19 +126,15 @@
         }
       }
 
-      // Friction to return to normal speed
       this.vx *= 0.99;
       this.vy *= 0.99;
 
-      // Keep minimum movement
       if (Math.abs(this.vx) < 0.1) this.vx = (Math.random() - 0.5) * 0.5;
       if (Math.abs(this.vy) < 0.1) this.vy = (Math.random() - 0.5) * 0.5;
 
-      // Pulse size
       this.angle += this.spinSpeed;
       this.size = this.baseSize + Math.sin(this.angle) * 0.5;
 
-      // Wrap around screen
       if (this.x < 0) this.x = width;
       if (this.x > width) this.x = 0;
       if (this.y < 0) this.y = height;
@@ -100,13 +146,57 @@
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
       ctx.fillStyle = this.color;
-      
-      // Glow effect
       ctx.shadowBlur = 15;
       ctx.shadowColor = this.color;
-      
       ctx.fill();
-      ctx.shadowBlur = 0; // Reset for lines
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  class CelebrationParticle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    color: string;
+    life: number;
+    maxLife: number;
+    size: number;
+
+    constructor(x: number, y: number, color: string, intensity: number = 1) {
+      this.x = x;
+      this.y = y;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = (Math.random() * 4 + 3) * intensity;
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+      this.color = color;
+      this.maxLife = 80;
+      this.life = this.maxLife;
+      this.size = (Math.random() * 4 + 2) * intensity;
+    }
+
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vy += 0.2;
+      this.vx *= 0.98;
+      this.life--;
+    }
+
+    draw(ctx: CanvasRenderingContext2D) {
+      const alpha = this.life / this.maxLife;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    isDead() {
+      return this.life <= 0;
     }
   }
 
@@ -115,6 +205,8 @@
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
+    celebrationCanvas.width = width;
+    celebrationCanvas.height = height;
     initParticles();
   }
 
@@ -126,43 +218,157 @@
     }
   }
 
-  function showAchievement(text: string) {
-    if (achievementPopup && achievementText) {
-      achievementText.textContent = text;
-      achievementPopup.classList.remove('translate-y-20', 'opacity-0');
-      
-      setTimeout(() => {
-        achievementPopup.classList.add('translate-y-20', 'opacity-0');
-        setTimeout(() => {
-          achievementShown = false;
-        }, 500);
-      }, 3000);
+  function updateUI() {
+    if (currentNodesEl) currentNodesEl.textContent = currentNodes.toString();
+    if (highScoreEl) highScoreEl.textContent = highScore.toString();
+    
+    // Update level and progress
+    let currentMilestone = MILESTONES[0];
+    let previousThreshold = 0;
+    
+    for (let i = 0; i < MILESTONES.length; i++) {
+      if (currentNodes < MILESTONES[i].threshold) {
+        currentMilestone = MILESTONES[i];
+        previousThreshold = i > 0 ? MILESTONES[i - 1].threshold : 0;
+        break;
+      } else if (i === MILESTONES.length - 1) {
+        currentMilestone = MILESTONES[i];
+        previousThreshold = MILESTONES[i].threshold;
+      }
     }
+    
+    if (currentLevelEl) {
+      if (currentNodes >= 200) {
+        currentLevelEl.textContent = "AGI ACHIEVED! 🎉";
+      } else {
+        const prevLevel = MILESTONES.find(m => m.threshold <= currentNodes);
+        currentLevelEl.textContent = prevLevel ? prevLevel.name : "Starting...";
+      }
+    }
+    
+    if (nextMilestoneEl) {
+      nextMilestoneEl.textContent = currentNodes >= 200 ? "∞" : currentMilestone.threshold.toString();
+    }
+    
+    if (progressBar) {
+      const progress = currentNodes >= 200 ? 100 : 
+        ((currentNodes - previousThreshold) / (currentMilestone.threshold - previousThreshold)) * 100;
+      progressBar.style.width = `${Math.min(progress, 100)}%`;
+      
+      // Update progress bar gradient based on current level
+      const levelIndex = Math.min(Math.floor(currentNodes / 50), MILESTONES.length - 1);
+      progressBar.className = `h-full bg-gradient-to-r ${MILESTONES[levelIndex].color} transition-all duration-300`;
+    }
+    
+    // Show tracker after first interaction
+    if (agiTracker && currentNodes > 0) {
+      agiTracker.style.opacity = '1';
+    }
+  }
+
+  function triggerCelebration(milestone: typeof MILESTONES[0], nodeCount: number) {
+    if (!celebrationCtx) return;
+
+    const colors = [
+      'rgb(0, 240, 255)',
+      'rgb(112, 0, 255)',
+      'rgb(255, 0, 128)',
+      'rgb(255, 215, 0)',
+      'rgb(0, 255, 127)',
+    ];
+
+    const burstCount = milestone.level * 40;
+    const intensity = milestone.level * 0.7;
+    
+    for (let i = 0; i < burstCount; i++) {
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      celebrationParticles.push(
+        new CelebrationParticle(width / 2, height / 2, color, intensity)
+      );
+    }
+    
+    particles.forEach(p => {
+      const boost = 1 + (milestone.level * 0.2);
+      p.vx *= boost;
+      p.vy *= boost;
+    });
+    
+    showAchievement(milestone.name, nodeCount, milestone.level);
+  }
+
+  function showAchievement(name: string, nodeCount: number, level: number) {
+    if (!achievementPopup || !achievementText || !achievementHeader) return;
+    
+    const isNewRecord = nodeCount > highScore;
+    
+    achievementText.textContent = name;
+    achievementHeader.textContent = level === 5 ? "🎉 VICTORY!" : "MILESTONE REACHED";
+    
+    if (newRecordEl) {
+      newRecordEl.classList.toggle('hidden', !isNewRecord);
+    }
+    
+    const colors = [
+      'text-cyan-400',
+      'text-violet-400',
+      'text-fuchsia-400',
+      'text-yellow-400',
+      'text-green-400',
+    ];
+    
+    const shadows = [
+      'shadow-[0_0_20px_rgba(0,240,255,0.7)]',
+      'shadow-[0_0_25px_rgba(112,0,255,0.8)]',
+      'shadow-[0_0_30px_rgba(255,0,128,0.9)]',
+      'shadow-[0_0_40px_rgba(255,215,0,1)]',
+      'shadow-[0_0_50px_rgba(0,255,127,1)]',
+    ];
+    
+    achievementHeader.className = ` ${colors[level - 1]} text-sm font-bold mb-1`;
+    
+    const currentClasses = achievementPopup.className.split(' ');
+    const filteredClasses = currentClasses.filter(c => !c.includes('shadow-['));
+    achievementPopup.className = `${filteredClasses.join(' ')} ${shadows[level - 1]}`;
+    
+    achievementPopup.classList.remove('translate-y-20', 'opacity-0');
+    
+    setTimeout(() => {
+      achievementPopup?.classList.add('translate-y-20', 'opacity-0');
+    }, level === 5 ? 5000 : 3000);
+  }
+
+  function updateCelebration() {
+    if (!celebrationCtx || celebrationParticles.length === 0) return;
+
+    celebrationCtx.clearRect(0, 0, width, height);
+
+    celebrationParticles = celebrationParticles.filter(p => {
+      p.update();
+      p.draw(celebrationCtx);
+      return !p.isDead();
+    });
   }
 
   function animate() {
     if (!ctx) return;
     ctx.clearRect(0, 0, width, height);
     
-    // Decay scroll velocity
     scrollVelocity *= 0.95;
     
-    let currentConnected = 0;
+    let connectedNodes = 0;
 
-    // Draw connections
     ctx.lineWidth = 0.5;
     for (let i = 0; i < particles.length; i++) {
       particles[i].update();
       particles[i].draw();
       
-      // Connect to mouse
       if (isMouseMoving) {
         const dx = mouseX - particles[i].x;
         const dy = mouseY - particles[i].y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < 250) {
-          currentConnected++;
+          connectedNodes++;
           ctx.beginPath();
           ctx.strokeStyle = `rgba(200, 200, 255, ${0.3 - distance / 1250})`;
           ctx.moveTo(particles[i].x, particles[i].y);
@@ -171,7 +377,6 @@
         }
       }
 
-      // Connect to other particles
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
         const dy = particles[i].y - particles[j].y;
@@ -187,10 +392,27 @@
       }
     }
 
-    // Check for achievement
-    if (currentConnected > 50 && !achievementShown) {
-      achievementShown = true;
-      showAchievement(`Neural Link Established: ${currentConnected} Nodes`);
+    currentNodes = connectedNodes;
+    
+    // Update high score
+    if (currentNodes > highScore) {
+      highScore = currentNodes;
+      localStorage.setItem('agiHighScore', highScore.toString());
+    }
+    
+    updateUI();
+
+    // Check for milestone achievements
+    for (const milestone of MILESTONES) {
+      if (currentNodes >= milestone.threshold && !achievedMilestones.has(milestone.level)) {
+        achievedMilestones.add(milestone.level);
+        triggerCelebration(milestone, currentNodes);
+        break;
+      }
+    }
+
+    if (celebrationParticles.length > 0) {
+      updateCelebration();
     }
 
     requestAnimationFrame(animate);
@@ -217,6 +439,8 @@
     scrollY = newScrollY;
   });
 
+  // Initialize
   resize();
   animate();
+  updateUI();
 </script>
