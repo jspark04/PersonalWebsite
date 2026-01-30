@@ -1,5 +1,5 @@
 ---
-description: Full deployment pipeline: Update README, Commit, Push Docker.
+description: Full deployment pipeline that Update README, Commit, Push Docker.
 ---
 
 This workflow automates the entire deployment process for the personal website.
