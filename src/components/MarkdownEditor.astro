@@ -1,0 +1,212 @@
+---
+import 'quill/dist/quill.snow.css';
+
+interface Props {
+  initialContent?: string;
+  initialTitle?: string;
+  onSubmit: (title: string, content: string) => void;
+  submitLabel?: string;
+}
+
+const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', id = 'markdown-editor' } = Astro.props;
+---
+
+<div class={`markdown-editor bg-surface border border-white/10 rounded-lg`} id={id}>
+  <input 
+      type="text" 
+      id={`${id}-title`}
+      placeholder="Note Title" 
+      value={initialTitle}
+      class="w-full bg-black/20 border-b border-white/10 px-4 py-3 text-lg font-bold text-white focus:outline-none focus:bg-black/40 transition-colors title-input rounded-t-lg"
+  />
+
+  <div class="bg-white/5 text-gray-300">
+     <div id={`${id}-container`} class="h-[300px] border-none text-base editor-container"></div>
+  </div>
+
+  <!-- Hidden input to store initial markdown for JS to pick up -->
+  <input type="hidden" id={`${id}-initial`} class="initial-content" value={initialContent} />
+  
+  <div class="p-3 bg-black/20 border-t border-white/10 flex justify-end rounded-b-lg">
+    <button id={`${id}-submit`} class="px-6 py-2 bg-primary text-black font-semibold rounded hover:bg-primary/80 transition-colors submit-btn">
+      {submitLabel}
+    </button>
+  </div>
+</div>
+
+<style is:global>
+    /* Dark mode overrides for Quill */
+    /* Toolbar */
+    .markdown-editor .ql-toolbar.ql-snow {
+        border: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.02) !important;
+        padding: 12px;
+    }
+
+    /* Editor Container */
+    .markdown-editor .ql-container.ql-snow {
+        border: none !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+
+    .markdown-editor .ql-editor {
+        color: #e2e8f0;
+        font-size: 1rem;
+        line-height: 1.75;
+        min-height: 200px;
+        padding: 16px;
+    }
+
+    .markdown-editor .ql-editor.ql-blank::before {
+        color: rgba(255,255,255,0.3) !important;
+        font-style: normal !important;
+    }
+
+    /* Icons - High Contrast */
+    .markdown-editor .ql-snow .ql-stroke { stroke: #cbd5e1 !important; } /* slate-300 */
+    .markdown-editor .ql-snow .ql-fill { fill: #cbd5e1 !important; }
+    .markdown-editor .ql-snow .ql-picker { color: #cbd5e1 !important; }
+
+    /* Icon Hover States */
+    .markdown-editor .ql-snow .ql-picker:hover, 
+    .markdown-editor .ql-snow .ql-picker-label:hover { color: #fff !important; }
+    
+    .markdown-editor .ql-snow .ql-picker:hover .ql-picker-label .ql-stroke,
+    .markdown-editor .ql-snow button:hover .ql-stroke { stroke: #fff !important; }
+    
+    .markdown-editor .ql-snow button:hover .ql-fill { fill: #fff !important; }
+
+    /* Picker Dropdowns (The white box issue) */
+    .markdown-editor .ql-snow .ql-picker-options {
+        background-color: #18181b !important; /* zinc-900 */
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        padding: 8px !important;
+        z-index: 100 !important;
+    }
+    
+    .markdown-editor .ql-snow .ql-picker-item {
+        color: #cbd5e1 !important;
+    }
+    .markdown-editor .ql-snow .ql-picker-item:hover {
+        color: #fff !important;
+        background-color: rgba(255,255,255,0.1) !important;
+    }
+
+    /* TOOLTIP FIXES (The other white box issue) */
+    .ql-snow .ql-tooltip {
+        background-color: #18181b !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        z-index: 100 !important;
+        left: 50% !important;
+        transform: translateX(-50%);
+    }
+
+    /* Remove the little triangle if it looks weird */
+    .ql-snow .ql-tooltip::before { content: none !important; }
+
+    /* Tooltip Input */
+    .ql-snow .ql-tooltip input[type=text] {
+        background-color: #27272a !important; /* zinc-800 */
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        color: white !important;
+        border-radius: 4px;
+        padding: 4px 8px;
+        outline: none;
+    }
+    .ql-snow .ql-tooltip input[type=text]:focus {
+        border-color: #2dd4bf !important;
+    }
+
+    /* Tooltip Buttons */
+    .ql-snow .ql-tooltip a.ql-action::after {
+        color: #2dd4bf !important;
+        font-weight: bold;
+    }
+    .ql-snow .ql-tooltip a.ql-preview {
+        color: #2dd4bf !important;
+    }
+    .ql-snow .ql-tooltip a.ql-remove::before {
+        color: #ef4444 !important; /* red-500 */
+    }
+</style>
+
+<script>
+    import Quill from 'quill';
+    import TurndownService from 'turndown';
+    import { marked } from 'marked';
+
+    // Initialize Converters
+    const turndownService = new TurndownService({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced'
+    });
+
+    // Initialize all editor instances
+    document.querySelectorAll('.markdown-editor').forEach(container => {
+        // Prevent double initialization
+        if (container.dataset.initialized) return;
+        container.dataset.initialized = 'true';
+
+        const editorEl = container.querySelector('.editor-container');
+        const titleInput = container.querySelector('.title-input') as HTMLInputElement;
+        const submitBtn = container.querySelector('.submit-btn');
+        const initialMarkdownInput = container.querySelector('.initial-content') as HTMLInputElement;
+        const initialMarkdown = initialMarkdownInput?.value || '';
+
+        if (editorEl) {
+            // Init Quill
+            const quill = new Quill(editorEl, {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link', 'code-block'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Start writing...'
+            });
+
+            // Load Content: Markdown -> HTML -> Quill
+            if (initialMarkdown) {
+                const html = marked.parse(initialMarkdown) as string;
+                quill.clipboard.dangerouslyPasteHTML(html);
+            }
+
+            // Expose setValues method to the DOM element
+            (container as any).setValues = (title: string, markdown: string) => {
+                if (titleInput) titleInput.value = title;
+                if (quill && markdown) {
+                    const html = marked.parse(markdown) as string;
+                    // Clear existing content before pasting new
+                    quill.setContents([]); 
+                    quill.clipboard.dangerouslyPasteHTML(html);
+                }
+            };
+
+            // Handle Submit
+            submitBtn?.addEventListener('click', () => {
+                const title = titleInput?.value || '';
+                const htmlContent = quill.root.innerHTML;
+                
+                // Save Content: HTML -> Markdown
+                const markdownContent = turndownService.turndown(htmlContent);
+                
+                const event = new CustomEvent('editor-submit', {
+                    detail: { title, content: markdownContent },
+                    bubbles: true
+                });
+                
+                container.dispatchEvent(event);
+            });
+        }
+    });
+</script>

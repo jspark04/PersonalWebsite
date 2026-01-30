@@ -7,14 +7,15 @@ A minimalist, production-ready personal website built with **Astro**, **Tailwind
 - **Framework**: [Astro](https://astro.build) (Node.js adapter)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com)
 - **Language**: TypeScript
+- **Database**: PostgreSQL (via `postgres.js`)
 - **Deployment**: Docker
 
 ## Project Structure
 
 - `src/data/site.ts`: **Main Config**. Edit this file to update Bio, Links, and Background info.
-- `src/content/notes/`: Markdown files for the Notes section.
+- `src/pages/api/`: API Endpoints for Notes and Authentication.
+- `src/components/MarkdownEditor.astro`: Rich text (WYSIWYG) editor with dark mode support.
 - `src/pages/`: Route definitions.
-- `src/components/`: Reusable UI components.
 
 ## Editing Content
 
@@ -25,17 +26,18 @@ Edit `src/data/site.ts`. This file contains the single source of truth for:
 - Social Links (LinkedIn, GitHub, Email)
 - Focus Areas & Background info
 
-### 2. Notes
-Add new markdown files to `src/content/notes/`.
-Frontmatter format:
-```yaml
----
-title: "My New Note"
-description: "A short summary."
-pubDate: 2023-10-27
-tags: ["tech", "life"]
----
-```
+### 2. Notes (Admin Panel)
+The Notes system is now powered by a PostgreSQL database with a secure Admin UI.
+
+1.  **Access**: Navigate to `/notes` and scroll to the top.
+2.  **Login**: Use the admin password (defined in env `ADMIN_PASSWORD`).
+3.  **Create Note**: Use the **Rich Text Editor (Quill)** at the top of the page.
+    - Supports formatting (Bold, Italic, Lists, Links, Headings).
+    - Auto-converts to Markdown for storage.
+4.  **Edit Note**: Click the **Edit** button on any note.
+    - Opens a **Dark Mode Modal**.
+    - Modify Title or Content ensuring a seamless "What You See Is What You Get" experience.
+
 
 ## Local Development
 
@@ -77,13 +79,19 @@ See [docker_push.md](./docker_push.md) for more details.
 
 ## Synology Deployment
 
-1. **Container Manager**:
-   - Create a new Project (using `docker-compose.yml`).
-   - Or pull the built image if you push it to a registry.
-2. **Reverse Proxy**:
-   - Set up a Reverse Proxy rule in Synology Control Panel.
+## Synology Deployment
+
+1. **Container Manager (Registry)**:
+   - Go to **Registry** and search for `hotsoupishot/personal-site`.
+   - Download the `latest` tag.
+   - Go to **Image**, select the image, and click **Run**.
+   - Map **Port 3000** on the container to a local port (e.g., 3030).
+   - Configure environment variables if needed.
+
+2. **Reverse Proxy (Optional)**:
+   - Set up a Reverse Proxy rule in **Control Panel > Login Portal > Advanced > Reverse Proxy**.
    - Source: `https://your-domain.com`
-   - Destination: `http://localhost:3000` (or whatever port you mapped).
+   - Destination: `http://localhost:3030`.
 
 ## Live Site
 Deployed at: [https://jp.maple.myds.me](https://jp.maple.myds.me)
