@@ -68,6 +68,13 @@ docker build -t john-park-site .
 docker run -d -p 3000:3000 --env-file .env john-park-site
 ```
 
+### Automated Build & Push
+To build and push the image to Docker Hub with version tags:
+```powershell
+.\push_image.ps1
+```
+See [docker_push.md](./docker_push.md) for more details.
+
 ## Synology Deployment
 
 1. **Container Manager**:
