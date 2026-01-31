@@ -10,6 +10,15 @@ A minimalist, production-ready personal website built with **Astro**, **Tailwind
 - **Database**: PostgreSQL (via `postgres.js`)
 - **Deployment**: Docker
 
+## Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `ADMIN_PASSWORD` | Password for admin access to Notes | Yes | - |
+| `DATABASE_URL` | Postgres connection string | Yes | - |
+| `DISABLE_SECURE_COOKIES` | Set to `true` to allow login over HTTP (non-HTTPS) | No | `false` |
+
+
 ## Project Structure
 
 - `src/data/site.ts`: **Main Config**. Edit this file to update Bio, Links, and Background info.

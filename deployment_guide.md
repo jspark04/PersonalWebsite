@@ -49,7 +49,11 @@ docker save -o site.tar john-park-site:latest
     - Local Port: `3030` (or any open port like 8080)
     - Container Port: `3030` (do not change this one)
     - Type: TCP
-5.  Click **Next** -> **Done**.
+5.  **Environment Variables**:
+    - Add `ADMIN_PASSWORD`: Set this to your desired password for admin access.
+    - Add `DATABASE_URL`: Set this to your production database connection string (e.g., Supabase, Neon, or local Postgres).
+    - Add `DISABLE_SECURE_COOKIES`: Set to `true` if accessing via HTTP (IP address) to allow login.
+6.  Click **Next** -> **Done**.
 
 ### Step 6: Verify
 Open your browser and go to `http://YOUR_NAS_IP:3030`. Your site should be live!
