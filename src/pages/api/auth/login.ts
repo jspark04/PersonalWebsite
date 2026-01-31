@@ -7,11 +7,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // Check both import.meta.env (Astro) and process.env (Node)
         const adminPassword = import.meta.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
 
+        const proto = request.headers.get('x-forwarded-proto');
+        const isHttps = proto === 'https';
+        const forceDisable = import.meta.env.DISABLE_SECURE_COOKIES || process.env.DISABLE_SECURE_COOKIES;
+
         if (password === adminPassword) {
             cookies.set('auth_session', 'true', {
                 path: '/',
                 httpOnly: true,
-                secure: import.meta.env.PROD && !import.meta.env.DISABLE_SECURE_COOKIES && !process.env.DISABLE_SECURE_COOKIES,
+                // Secure if PROD + HTTPS + Not Disabled
+                secure: import.meta.env.PROD && isHttps && !forceDisable,
                 maxAge: 60 * 60 * 24 * 7, // 1 week
             });
 
