@@ -1,0 +1,44 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRepositoryReadme } from '../../lib/github';
+
+const { repo } = Astro.params;
+
+if (!repo) {
+  return Astro.redirect('/projects');
+}
+
+let content;
+try {
+  content = await getRepositoryReadme(repo);
+} catch (e) {
+  console.error(e);
+  content = "<div class='text-red-400'>Failed to load project details. Please try again later.</div>";
+}
+---
+
+<Layout title={`${repo} | Projects`} description={`Detailed view of project ${repo}`}>
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <a href="/projects" class="inline-flex items-center text-gray-400 hover:text-white transition-colors mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back to Projects
+        </a>
+        <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{repo}</h1>
+    </div>
+
+    <article class="prose prose-invert prose-lg max-w-none 
+        prose-headings:text-gray-100 prose-headings:font-bold 
+        prose-h1:text-4xl prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-white/10
+        prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6
+        prose-p:text-gray-300 prose-p:leading-relaxed
+        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+        prose-code:text-accent prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-[#0a0a0f] prose-pre:border prose-pre:border-white/10
+        prose-img:rounded-xl prose-img:border prose-img:border-white/10 prose-img:shadow-lg
+        prose-blockquote:border-l-primary prose-blockquote:bg-surface/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r
+        bg-surface/30 p-8 rounded-2xl border border-white/5">
+      <div set:html={content} />
+    </article>
+  </div>
+</Layout>

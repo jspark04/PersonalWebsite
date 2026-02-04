@@ -17,6 +17,7 @@ A minimalist, production-ready personal website built with **Astro**, **Tailwind
 | `ADMIN_PASSWORD` | Password for admin access to Notes | Yes | - |
 | `DATABASE_URL` | Postgres connection string | Yes | - |
 | `DISABLE_SECURE_COOKIES` | Set to `true` to force non-HTTPS login (usually auto-detected) | No | `false` |
+| `GITHUB_TOKEN` | GitHub Personal Access Token for fetching repositories | Yes (for Projects) | - |
 
 
 
@@ -36,7 +37,12 @@ Edit `src/data/site.ts`. This file contains the single source of truth for:
 - Social Links (LinkedIn, GitHub, Email)
 - Focus Areas & Background info
 
-### 2. Notes (Admin Panel)
+### 2. Projects (Portfolio)
+The projects section dynamically fetches repositories from GitHub.
+- **Source**: `src/lib/github.ts` fetches data from the GitHub API.
+- **Config**: Ensure `GITHUB_TOKEN` is set in `.env` to avoid rate limits and access private repos.
+
+### 3. Notes (Admin Panel)
 The Notes system is now powered by a PostgreSQL database with a secure Admin UI.
 
 1.  **Access**: Navigate to `/notes` and scroll to the top.
