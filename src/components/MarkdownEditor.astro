@@ -8,7 +8,7 @@ interface Props {
   submitLabel?: string;
 }
 
-const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', id = 'markdown-editor' } = Astro.props;
+const { initialContent = '', initialTitle = '', initialTags = [], onSubmit, submitLabel = 'Save', id = 'markdown-editor' } = Astro.props;
 ---
 
 <div class={`markdown-editor bg-surface border border-white/10 rounded-lg`} id={id}>
@@ -18,6 +18,13 @@ const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', 
       placeholder="Note Title" 
       value={initialTitle}
       class="w-full bg-black/20 border-b border-white/10 px-4 py-3 text-lg font-bold text-white focus:outline-none focus:bg-black/40 transition-colors title-input rounded-t-lg"
+  />
+  <input 
+      type="text" 
+      id={`${id}-tags`}
+      placeholder="Tags (comma separated)..." 
+      value={initialTags.join(', ')}
+      class="w-full bg-black/20 border-b border-white/10 px-4 py-2 text-sm text-gray-400 focus:outline-none focus:bg-black/40 transition-colors tags-input"
   />
 
   <div class="bg-white/5 text-gray-300">
@@ -35,6 +42,7 @@ const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', 
 </div>
 
 <style is:global>
+    /* ... existing styles ... */
     /* Dark mode overrides for Quill */
     /* Toolbar */
     .markdown-editor .ql-toolbar.ql-snow {
@@ -155,6 +163,7 @@ const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', 
 
         const editorEl = container.querySelector('.editor-container');
         const titleInput = container.querySelector('.title-input') as HTMLInputElement;
+        const tagsInput = container.querySelector('.tags-input') as HTMLInputElement;
         const submitBtn = container.querySelector('.submit-btn');
         const initialMarkdownInput = container.querySelector('.initial-content') as HTMLInputElement;
         const initialMarkdown = initialMarkdownInput?.value || '';
@@ -182,8 +191,9 @@ const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', 
             }
 
             // Expose setValues method to the DOM element
-            (container as any).setValues = (title: string, markdown: string) => {
+            (container as any).setValues = (title: string, markdown: string, tags: string[] = []) => {
                 if (titleInput) titleInput.value = title;
+                if (tagsInput) tagsInput.value = tags.join(', ');
                 if (quill && markdown) {
                     const html = marked.parse(markdown) as string;
                     // Clear existing content before pasting new
@@ -195,13 +205,14 @@ const { initialContent = '', initialTitle = '', onSubmit, submitLabel = 'Save', 
             // Handle Submit
             submitBtn?.addEventListener('click', () => {
                 const title = titleInput?.value || '';
+                const tags = tagsInput?.value.split(',').map(t => t.trim()).filter(Boolean) || [];
                 const htmlContent = quill.root.innerHTML;
                 
                 // Save Content: HTML -> Markdown
                 const markdownContent = turndownService.turndown(htmlContent);
                 
                 const event = new CustomEvent('editor-submit', {
-                    detail: { title, content: markdownContent },
+                    detail: { title, content: markdownContent, tags },
                     bubbles: true
                 });
                 

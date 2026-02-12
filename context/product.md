@@ -8,7 +8,7 @@
 
 ## 2. Core Features (MVP)
 -   **Dynamic Portfolio**: Automatically fetches and visualizes GitHub repositories, including README rendering and fixing relative links.
--   **Notes System**: A blog-like notes section backed by PostgreSQL, featuring a WYSIWYG editor (Quill.js) for easy content creation.
+-   **Notes System**: A blog-like notes section backed by PostgreSQL, featuring a WYSIWYG editor (Quill.js), **Tagging**, and **Search** for easy content discovering.
 -   **Admin Interface**: Secure, password-protected area (`/notes`) for creating, editing, and deleting notes.
 -   **Responsive Design**: Mobile-first minimalist aesthetic using Tailwind CSS.
 

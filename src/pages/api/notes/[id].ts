@@ -30,14 +30,15 @@ export const PUT: APIRoute = async ({ params, request, cookies }) => {
     }
 
     try {
-        const { title, content } = await request.json();
+        const { title, content, tags } = await request.json();
         const noteTitle = title || 'Untitled';
+        const noteTags = Array.isArray(tags) ? tags : [];
 
         if (!content) return new Response('Content required', { status: 400 });
 
         const [updatedNote] = await sql`
       UPDATE notes 
-      SET title = ${noteTitle}, content = ${content} 
+      SET title = ${noteTitle}, content = ${content}, tags = ${noteTags}
       WHERE id = ${id}
       RETURNING *
     `;

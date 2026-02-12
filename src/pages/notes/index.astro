@@ -8,8 +8,23 @@ export const prerender = false;
 
 // Fetch dynamic notes (DB)
 let dbNotes = [];
+const search = Astro.url.searchParams.get('search');
+const tag = Astro.url.searchParams.get('tag');
+
 try {
-  dbNotes = await sql`SELECT * FROM notes ORDER BY created_at DESC`;
+  const conditions = [];
+  if (search) {
+      conditions.push(sql`(title ILIKE ${'%' + search + '%'} OR content ILIKE ${'%' + search + '%'})`);
+  }
+  if (tag) {
+      conditions.push(sql`${tag} = ANY(tags)`);
+  }
+
+  dbNotes = await sql`
+    SELECT * FROM notes 
+    ${conditions.length > 0 ? sql`WHERE ${conditions.length > 1 ? sql`${conditions[0]} AND ${conditions[1]}` : conditions[0]}` : sql``}
+    ORDER BY created_at DESC
+  `;
 } catch (e) {
   console.error('Failed to fetch notes:', e);
 }
@@ -55,28 +70,58 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
 			</div>
 		)}
 
-		<!-- Dynamic Notes List -->
+		<!-- Search & Filter -->
+        <div class="mb-8 flex gap-4">
+            <form action="/notes" method="GET" class="flex-1 flex gap-2">
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Search notes..." 
+                    value={search || ''}
+                    class="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary/50 transition-colors"
+                />
+                {tag && <input type="hidden" name="tag" value={tag} />}
+                <button type="submit" class="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg transition-colors font-medium">Search</button>
+            </form>
+            {(search || tag) && (
+                <a href="/notes" class="flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-lg transition-colors border border-red-500/20">
+                    Clear Filters
+                </a>
+            )}
+        </div>
+
 		<!-- Dynamic Notes List (Grid Layout) -->
 		<div id="notes-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 			{dbNotes.map((note) => {
                 const noteDate = new Date(note.created_at);
+                const tags = note.tags || [];
                 
                 return (
 				<div 
-                    class="note-card bg-surface/50 backdrop-blur-sm border border-white/5 rounded-xl p-6 relative group hover:border-primary/50 hover:bg-surface/80 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-[280px]"
+                    class="note-card bg-surface/50 backdrop-blur-sm border border-white/5 rounded-xl p-6 relative group hover:border-primary/50 hover:bg-surface/80 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-[320px]"
                     id={`note-${note.id}`}
                     data-id={note.id}
                     data-title={note.title}
                     data-content={note.content}
+                    data-tags={tags.join(', ')}
                     data-date={noteDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 >
                     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="flex justify-between items-start mb-2">
                         <h2 class="text-xl font-bold text-white group-hover:text-primary transition-colors line-clamp-2">{note.title || 'Untitled'}</h2>
                         <span class="text-xs font-mono text-primary/80 bg-primary/10 px-2 py-1 rounded border border-primary/20 shrink-0 ml-2">
                             {noteDate.toLocaleString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
+                    </div>
+
+                    {/* Tags */}
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        {tags.map((t: string) => (
+                            <a href={`/notes?tag=${t}`} class="text-[10px] uppercase font-bold tracking-wider text-muted hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors z-20">
+                                {t}
+                            </a>
+                        ))}
                     </div>
 
                     <div class="prose prose-invert prose-sm text-gray-400 line-clamp-4 leading-relaxed mb-auto pointer-events-none">
@@ -87,7 +132,7 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
                         <span class="italic opacity-50">Click to read more</span>
 						{isLoggedIn && (
 							<div class="flex gap-3 z-20">
-								<button class="hover:text-primary transition-colors edit-btn font-bold p-1" data-id={note.id} data-title={note.title} data-content={note.content}>EDIT</button>
+								<button class="hover:text-primary transition-colors edit-btn font-bold p-1" data-id={note.id} data-title={note.title} data-content={note.content} data-tags={tags.join(', ')}>EDIT</button>
 								<button class="hover:text-red-500 transition-colors delete-btn font-bold p-1" data-id={note.id}>DELETE</button>
 							</div>
 						)}
@@ -98,7 +143,8 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
         
         {dbNotes.length === 0 && (
             <div class="text-center py-20">
-                <p class="text-muted text-lg">No notes found.</p>
+                <p class="text-muted text-lg">No notes found matching your criteria.</p>
+                {(search || tag) && <a href="/notes" class="text-primary hover:underline mt-2 inline-block">Clear filters</a>}
             </div>
         )}
         
@@ -183,14 +229,14 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
     });
 
     // Note Operations - Add Note
-    document.querySelector('.markdown-editor')?.addEventListener('editor-submit', async (e: any) => {
-        const { title, content } = e.detail;
+    document.querySelector('#add-note-editor')?.addEventListener('editor-submit', async (e: any) => {
+        const { title, content, tags } = e.detail;
         
         try {
             const res = await fetch('/api/notes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content })
+                body: JSON.stringify({ title, content, tags })
             });
 
             if (res.ok) {
@@ -233,15 +279,17 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
     // Open Edit Modal
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const id = (e.target as HTMLElement).dataset.id;
-            const currentTitle = (e.target as HTMLElement).dataset.title;
-            const currentContent = (e.target as HTMLElement).dataset.content;
+            const el = e.target as HTMLElement;
+            const id = el.dataset.id;
+            const currentTitle = el.dataset.title;
+            const currentContent = el.dataset.content;
+            const currentTags = el.dataset.tags || '';
             
-            if (id && currentTitle && currentContent) {
+            if (id && currentTitle && currentContent !== undefined) {
                 currentEditingId = id;
                 const editEditor = document.getElementById('edit-note-editor') as any;
                 if (editEditor && editEditor.setValues) {
-                    editEditor.setValues(currentTitle, currentContent);
+                    editEditor.setValues(currentTitle, currentContent, currentTags.split(', ').filter(Boolean));
                     editModal?.classList.remove('hidden');
                 }
             }
@@ -267,8 +315,10 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
     // Open Note Logic
     document.querySelectorAll('.note-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            // Don't open if clicking admin buttons
-            if ((e.target as HTMLElement).closest('.edit-btn') || (e.target as HTMLElement).closest('.delete-btn')) return;
+            // Don't open if clicking admin buttons or tags
+            if ((e.target as HTMLElement).closest('.edit-btn') || 
+                (e.target as HTMLElement).closest('.delete-btn') ||
+                (e.target as HTMLElement).tagName.toLowerCase() === 'a') return;
 
             const title = (card as HTMLElement).dataset.title;
             const content = (card as HTMLElement).dataset.content;
@@ -277,30 +327,12 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
             if (viewTitle) viewTitle.textContent = title || 'Untitled';
             if (viewDate) viewDate.textContent = date || '';
             
-            // Simple markdown parsing for view modal (using marked from global or re-import if needed, 
-            // but for simplicity on client side we might need a parser or just text if marked isn't available globally.
-            // Since we don't have marked client-side easily without hydrating, we will rely on server-rendered content 
-            // OR fetch it. Actually, mapping content to data-attribute works for small notes, but large notes might be an issue.
-            // Let's use the API to fetch fresh content or just render raw.
-            // Better approach: Use the data-content but we need a parser.
-            // For now, let's just display text. Wait, we assume marked is available? No.
-            // Let's just use the server rendered HTML if possible? No that's only preview.
-            // We will fetch the rendered HTML from an API? No that's too much.
-            // Let's just assume we want simple text or install marked client side?
-            // Actually, we can use a dynamic import or just basic text for now.
-            // OR, better yet, we can pass the parsed HTML as a separate data attribute if we want.
-            // Let's try to do a quick fetch to get reliable content? No.
-            // Let's use the `marked` library if it WAS available.
-            // FIX: We will just set innerText for now to be safe, or if we can, use the preview HTML?
-            // Let's fetch the note details to be clean.
-            
            if (viewContent && content) {
-               // Quick hack: Use the preview's HTML if available? No it's clamped.
-               // We will just show text for now. To do this properly we'd need a client-side markdown parser.
-               // Let's just set textContent.
-               viewContent.textContent = content;
-               // If you want markdown, we'd need to bring 'marked' to client side script.
-               // Let's try to dynamically import it if possible?
+               // Render content 
+               // For now, simple text or use a client-side parser if available. 
+               // Since we don't have marked easily available in this scope without import map or bundle,
+               // we will stick to text or reuse the server logic if we were using it there.
+               // Re-implementing dynamic import for marked if needed, or just text.
                import('https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js').then(({ marked }) => {
                     viewContent.innerHTML = marked.parse(content) as string;
                }).catch(() => {
@@ -314,14 +346,14 @@ const isLoggedIn = Astro.cookies.get('auth_session')?.boolean();
 
     // Handle Edit Submit
     document.querySelector('#edit-note-editor')?.addEventListener('editor-submit', async (e: any) => {
-        const { title, content } = e.detail;
+        const { title, content, tags } = e.detail;
         
         if (currentEditingId) {
             try {
                 const res = await fetch(`/api/notes/${currentEditingId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, content })
+                    body: JSON.stringify({ title, content, tags })
                 });
                 if (res.ok) window.location.reload();
                 else if (res.status === 401) alert('Unauthorized');

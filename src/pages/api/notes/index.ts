@@ -1,9 +1,35 @@
 import type { APIRoute } from 'astro';
 import sql from '../../../lib/db';
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
     try {
-        const notes = await sql`SELECT * FROM notes ORDER BY created_at DESC`;
+        const url = new URL(request.url);
+        const search = url.searchParams.get('search');
+        const tag = url.searchParams.get('tag');
+
+        let notes;
+
+        // Dynamic query construction
+        if (search || tag) {
+            const conditions = [];
+            if (search) {
+                // ILIKE for case-insensitive search
+                conditions.push(sql`(title ILIKE ${'%' + search + '%'} OR content ILIKE ${'%' + search + '%'})`);
+            }
+            if (tag) {
+                conditions.push(sql`${tag} = ANY(tags)`);
+            }
+
+            notes = await sql`
+                SELECT * FROM notes 
+                WHERE ${conditions.length > 1 ? sql`${conditions[0]} AND ${conditions[1]}` : conditions[0]}
+                ORDER BY created_at DESC
+            `;
+            // Note: simple AND logic for 2 conditions max for now, or use reduce if more complex
+        } else {
+            notes = await sql`SELECT * FROM notes ORDER BY created_at DESC`;
+        }
+
         return new Response(JSON.stringify(notes), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -29,8 +55,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         }
 
-        const { title, content } = await request.json();
+        const { title, content, tags } = await request.json();
         const noteTitle = title || 'Untitled';
+        const noteTags = Array.isArray(tags) ? tags : [];
 
         if (!content || typeof content !== 'string') {
             return new Response(JSON.stringify({ error: 'Content required' }), { status: 400 });
@@ -38,8 +65,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         // Create note
         const [note] = await sql`
-      INSERT INTO notes (title, content) 
-      VALUES (${noteTitle}, ${content}) 
+      INSERT INTO notes (title, content, tags) 
+      VALUES (${noteTitle}, ${content}, ${noteTags}) 
       RETURNING *
     `;
 
