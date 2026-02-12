@@ -11,3 +11,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 site.tar
+
+# One-off migration/debug scripts (never commit DB scripts)
+migrate-*.mjs
+refactor-*.mjs
+debug-*.mjs
+check-*.mjs
