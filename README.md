@@ -23,6 +23,7 @@ A minimalist, production-ready personal website built with **Astro**, **Tailwind
 
 ## Project Structure
 
+- `context/`: **Project Documentation**. Product specs, architecture diagrams, and task tracking.
 - `src/data/site.ts`: **Main Config**. Edit this file to update Bio, Links, and Background info.
 - `src/pages/api/`: API Endpoints for Notes and Authentication.
 - `src/components/MarkdownEditor.astro`: Rich text (WYSIWYG) editor with dark mode support.
