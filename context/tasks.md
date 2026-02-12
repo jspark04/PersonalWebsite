@@ -3,7 +3,7 @@
 ## Active Context
 <!-- Agents: update this signal when you start a group. -->
 **Current Active Groups**:
--   [ ] Group B (Agent: Antigravity)
+-   _None_
 
 
 ## Task Groups

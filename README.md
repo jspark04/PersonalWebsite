@@ -96,14 +96,12 @@ See [docker_push.md](./docker_push.md) for more details.
 
 ## Synology Deployment
 
-## Synology Deployment
-
 1. **Container Manager (Registry)**:
    - Go to **Registry** and search for `hotsoupishot/personal-site`.
    - Download the `latest` tag.
    - Go to **Image**, select the image, and click **Run**.
-   - Map **Port 3000** on the container to a local port (e.g., 3030).
-   - Configure environment variables if needed.
+   - Map **Port 3030** on the container to your desired local port.
+   - **Set environment variables** on the container: `DATABASE_URL`, `ADMIN_PASSWORD`, `GITHUB_TOKEN` (see table above). These are read at runtime via `process.env`.
 
 2. **Reverse Proxy (Optional)**:
    - Set up a Reverse Proxy rule in **Control Panel > Login Portal > Advanced > Reverse Proxy**.

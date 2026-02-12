@@ -4,12 +4,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     try {
         const { password } = await request.json();
 
-        // Check both import.meta.env (Astro) and process.env (Node)
-        const adminPassword = import.meta.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+        const adminPassword = process.env.ADMIN_PASSWORD;
 
         const proto = request.headers.get('x-forwarded-proto');
         const isHttps = proto === 'https';
-        const forceDisable = import.meta.env.DISABLE_SECURE_COOKIES || process.env.DISABLE_SECURE_COOKIES;
+        const forceDisable = process.env.DISABLE_SECURE_COOKIES;
 
         if (password === adminPassword) {
             cookies.set('auth_session', 'true', {

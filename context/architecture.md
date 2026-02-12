@@ -25,3 +25,5 @@
     -   **Rationale**: Required for the dynamic Admin features and real-time Note updates without rebuilding.
 -   **Decision**: Generic GitHub Token usage.
     -   **Rationale**: `GITHUB_TOKEN` is used to increase rate limits and access own repos via standard API.
+-   **Decision**: Use `process.env` (not `import.meta.env`) for runtime secrets (`DATABASE_URL`, `ADMIN_PASSWORD`).
+    -   **Rationale**: Astro/Vite inlines `import.meta.env` at build time. In Docker, secrets aren't available during build, so they must be read at runtime via `process.env`.
